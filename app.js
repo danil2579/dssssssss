@@ -9,6 +9,13 @@ const sheet = document.getElementById('sheet');
 const sheetHandle = document.getElementById('sheet-handle');
 const fileOutfit = document.getElementById('file-outfit');
 const fileAvatar = document.getElementById('file-avatar');
+const filePhotoFront = document.getElementById('file-photo-front');
+const filePhotoSide = document.getElementById('file-photo-side');
+const filePhotoBack = document.getElementById('file-photo-back');
+const lblFront = document.getElementById('lbl-front');
+const lblSide = document.getElementById('lbl-side');
+const lblBack = document.getElementById('lbl-back');
+const btnClearAvatar = document.getElementById('btn-clear-avatar');
 const btnClearOutfit = document.getElementById('btn-clear-outfit');
 const btnReset = document.getElementById('btn-reset');
 const outfitControls = document.getElementById('outfit-controls');
@@ -164,6 +171,121 @@ function buildMannequin() {
 let mannequin = buildMannequin();
 avatarGroup.add(mannequin);
 
+// ---------- photo-billboard avatar ----------
+const photoAvatarGroup = new THREE.Group();
+scene.add(photoAvatarGroup);
+
+const PHOTO_ANGLES = {
+  front: 0,
+  back: Math.PI,
+  side: -Math.PI / 2,        // right side faces +X
+  sideMirror: Math.PI / 2,   // left side (mirrored copy of side)
+};
+
+const photoMeshes = { front: null, side: null, back: null, sideMirror: null };
+
+function createPhotoPlane(image, angle, mirror = false) {
+  const texture = new THREE.Texture(image);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  texture.needsUpdate = true;
+
+  const [br, bg, bb] = sampleBackgroundColor(image);
+  const keyColor = new THREE.Color(br, bg, bb).convertSRGBToLinear();
+
+  const aspect = image.naturalWidth / image.naturalHeight;
+  const heightM = 1.78;
+  const widthM = heightM * aspect;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader: outfitVertex,
+    fragmentShader: photoAvatarFragment,
+    uniforms: {
+      map: { value: texture },
+      keyColor: { value: keyColor },
+      keyThreshold: { value: 0.18 },
+      keySoftness: { value: 0.10 },
+    },
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(widthM, heightM), material);
+  plane.position.y = heightM / 2;
+  plane.rotation.y = angle;
+  if (mirror) plane.scale.x = -1;
+  return plane;
+}
+
+function disposePlane(plane) {
+  if (!plane) return;
+  plane.geometry.dispose();
+  plane.material.uniforms.map.value?.dispose();
+  plane.material.dispose();
+  photoAvatarGroup.remove(plane);
+}
+
+function setPhotoSlot(slotName, image) {
+  if (slotName === 'side') {
+    disposePlane(photoMeshes.side); photoMeshes.side = null;
+    disposePlane(photoMeshes.sideMirror); photoMeshes.sideMirror = null;
+    if (image) {
+      photoMeshes.side = createPhotoPlane(image, PHOTO_ANGLES.side, false);
+      photoMeshes.sideMirror = createPhotoPlane(image, PHOTO_ANGLES.sideMirror, true);
+      photoAvatarGroup.add(photoMeshes.side, photoMeshes.sideMirror);
+    }
+  } else {
+    disposePlane(photoMeshes[slotName]); photoMeshes[slotName] = null;
+    if (image) {
+      photoMeshes[slotName] = createPhotoPlane(image, PHOTO_ANGLES[slotName]);
+      photoAvatarGroup.add(photoMeshes[slotName]);
+    }
+  }
+  refreshAvatarMode();
+}
+
+function refreshAvatarMode() {
+  const anyPhoto = !!(photoMeshes.front || photoMeshes.side || photoMeshes.back);
+  mannequin.visible = !anyPhoto;
+  if (anyPhoto) {
+    outfitGroup.position.set(0, 0, 0.05);
+    if (outfitMesh) outfitMesh.position.y = parseFloat(sY.value) + 1.1;
+  } else {
+    outfitGroup.position.set(0, 1.1, 0);
+    if (outfitMesh) outfitMesh.position.y = parseFloat(sY.value);
+  }
+}
+
+function clearAvatarPhotos() {
+  for (const k of Object.keys(photoMeshes)) {
+    disposePlane(photoMeshes[k]); photoMeshes[k] = null;
+  }
+  for (const lbl of [lblFront, lblSide, lblBack]) lbl.dataset.state = 'empty';
+  filePhotoFront.value = ''; filePhotoSide.value = ''; filePhotoBack.value = '';
+  refreshAvatarMode();
+}
+
+function wirePhotoSlot(input, label, slotName) {
+  input.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    loaderEl.classList.remove('hidden');
+    const img = new Image();
+    img.onload = () => {
+      setPhotoSlot(slotName, img);
+      label.dataset.state = 'filled';
+      hintEl.classList.add('hidden');
+      loaderEl.classList.add('hidden');
+    };
+    img.onerror = () => {
+      loaderEl.classList.add('hidden');
+      alert('Не удалось загрузить фото');
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // ---------- outfit mesh (curved cloth overlay) ----------
 const outfitGroup = new THREE.Group();
 outfitGroup.position.set(0, 1.1, 0);
@@ -244,6 +366,23 @@ const outfitFragment = /* glsl */`
   }
 `;
 
+// Same chroma-key as outfit, but no fake shading — photos already have real light baked in.
+const photoAvatarFragment = /* glsl */`
+  uniform sampler2D map;
+  uniform vec3 keyColor;
+  uniform float keyThreshold;
+  uniform float keySoftness;
+  varying vec2 vUv;
+
+  void main() {
+    vec4 tex = texture2D(map, vUv);
+    float d = distance(tex.rgb, keyColor);
+    float alpha = smoothstep(keyThreshold, keyThreshold + keySoftness, d);
+    if (alpha < 0.015) discard;
+    gl_FragColor = vec4(tex.rgb, alpha);
+  }
+`;
+
 function sampleBackgroundColor(image) {
   const c = document.createElement('canvas');
   const w = 32, h = 32;
@@ -305,6 +444,7 @@ function applyOutfitImage(image) {
 
   outfitControls.hidden = false;
   hintEl.classList.add('hidden');
+  refreshAvatarMode();
 }
 
 function removeOutfit() {
@@ -354,6 +494,11 @@ btnClearOutfit.addEventListener('click', () => {
   fileOutfit.value = '';
 });
 
+wirePhotoSlot(filePhotoFront, lblFront, 'front');
+wirePhotoSlot(filePhotoSide, lblSide, 'side');
+wirePhotoSlot(filePhotoBack, lblBack, 'back');
+btnClearAvatar.addEventListener('click', clearAvatarPhotos);
+
 fileAvatar.addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -402,7 +547,11 @@ function replaceAvatar(object) {
 }
 
 // ---------- control wiring ----------
-sY.addEventListener('input', () => { if (outfitMesh) outfitMesh.position.y = parseFloat(sY.value); });
+sY.addEventListener('input', () => {
+  if (!outfitMesh) return;
+  const usingPhoto = !!(photoMeshes.front || photoMeshes.side || photoMeshes.back);
+  outfitMesh.position.y = parseFloat(sY.value) + (usingPhoto ? 1.1 : 0);
+});
 sScale.addEventListener('input', rebuildOutfitGeometry);
 sCurve.addEventListener('input', rebuildOutfitGeometry);
 sKey.addEventListener('input', () => {

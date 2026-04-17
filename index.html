@@ -70,15 +70,36 @@
         </div>
       </div>
 
-      <details class="advanced">
+      <details class="advanced" open>
         <summary>Мой 3D-аватар</summary>
         <p class="hint-muted">
-          Позже пришлёшь свои фото с разных ракурсов — я соберу GLB-модель и подставлю её сюда.
-          Пока используется заглушка-манекен. Если у тебя уже есть <code>.glb</code> / <code>.gltf</code> скан, можно загрузить его сейчас.
+          Загрузи свои фото 3 ракурсов — они станут «billboard-аватаром» в 3D-сцене.
+          Лучше всего: фон уже вырезан (или ровный белый), фигура во весь рост, поза А.
+        </p>
+
+        <div class="photo-grid">
+          <label class="file-btn small" data-state="empty" id="lbl-front">
+            <input id="file-photo-front" type="file" accept="image/*" hidden />
+            <span>Спереди</span>
+          </label>
+          <label class="file-btn small" data-state="empty" id="lbl-side">
+            <input id="file-photo-side" type="file" accept="image/*" hidden />
+            <span>Сбоку</span>
+          </label>
+          <label class="file-btn small" data-state="empty" id="lbl-back">
+            <input id="file-photo-back" type="file" accept="image/*" hidden />
+            <span>Сзади</span>
+          </label>
+        </div>
+
+        <button id="btn-clear-avatar" class="btn ghost" style="margin-top:8px; width:100%">Сбросить аватар (вернуть манекен)</button>
+
+        <p class="hint-muted" style="margin-top:14px">
+          Или, если у тебя уже есть готовая <code>.glb</code> / <code>.gltf</code> модель — подгрузи её:
         </p>
         <label class="file-btn">
           <input id="file-avatar" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden />
-          <span>Загрузить мой 3D-скан (.glb)</span>
+          <span>Загрузить .glb / .gltf</span>
         </label>
       </details>
     </section>
