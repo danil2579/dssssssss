@@ -172,37 +172,53 @@ let mannequin = buildMannequin();
 avatarGroup.add(mannequin);
 
 // ---------- photo-billboard avatar ----------
+// One plane that always faces the camera; its texture swaps based on camera yaw
+// around the avatar (front / side / back). Side is mirrored when camera is on
+// the opposite side. This avoids the "cross of planes" intersection artifact.
 const photoAvatarGroup = new THREE.Group();
 scene.add(photoAvatarGroup);
 
-const PHOTO_ANGLES = {
-  front: 0,
-  back: Math.PI,
-  side: -Math.PI / 2,        // right side faces +X
-  sideMirror: Math.PI / 2,   // left side (mirrored copy of side)
-};
+const photoImages = { front: null, side: null, back: null };
+let billboardMesh = null;
 
-const photoMeshes = { front: null, side: null, back: null, sideMirror: null };
-
-function createPhotoPlane(image, angle, mirror = false) {
-  const texture = new THREE.Texture(image);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  texture.needsUpdate = true;
-
+function buildPhotoTexture(image) {
+  const tex = new THREE.Texture(image);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.needsUpdate = true;
   const [br, bg, bb] = sampleBackgroundColor(image);
   const keyColor = new THREE.Color(br, bg, bb).convertSRGBToLinear();
+  return { texture: tex, keyColor, aspect: image.naturalWidth / image.naturalHeight };
+}
 
-  const aspect = image.naturalWidth / image.naturalHeight;
+function rebuildBillboard() {
+  if (billboardMesh) {
+    billboardMesh.geometry.dispose();
+    billboardMesh.material.dispose();
+    photoAvatarGroup.remove(billboardMesh);
+    billboardMesh = null;
+  }
+
+  const anyImage = photoImages.front || photoImages.side || photoImages.back;
+  if (!anyImage) { refreshAvatarMode(); return; }
+
+  const slots = {};
+  for (const slot of ['front', 'side', 'back']) {
+    if (photoImages[slot]) slots[slot] = buildPhotoTexture(photoImages[slot]);
+  }
+
+  // Use the largest aspect of available slots so the plane fits all textures.
+  const refAspect = Math.max(...Object.values(slots).map(s => s.aspect));
   const heightM = 1.78;
-  const widthM = heightM * aspect;
+  const widthM = heightM * refAspect;
 
+  const first = slots.front || slots.side || slots.back;
   const material = new THREE.ShaderMaterial({
     vertexShader: outfitVertex,
     fragmentShader: photoAvatarFragment,
     uniforms: {
-      map: { value: texture },
-      keyColor: { value: keyColor },
+      map: { value: first.texture },
+      keyColor: { value: first.keyColor },
       keyThreshold: { value: 0.18 },
       keySoftness: { value: 0.10 },
     },
@@ -211,42 +227,49 @@ function createPhotoPlane(image, angle, mirror = false) {
     depthWrite: false,
   });
 
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(widthM, heightM), material);
-  plane.position.y = heightM / 2;
-  plane.rotation.y = angle;
-  if (mirror) plane.scale.x = -1;
-  return plane;
-}
-
-function disposePlane(plane) {
-  if (!plane) return;
-  plane.geometry.dispose();
-  plane.material.uniforms.map.value?.dispose();
-  plane.material.dispose();
-  photoAvatarGroup.remove(plane);
-}
-
-function setPhotoSlot(slotName, image) {
-  if (slotName === 'side') {
-    disposePlane(photoMeshes.side); photoMeshes.side = null;
-    disposePlane(photoMeshes.sideMirror); photoMeshes.sideMirror = null;
-    if (image) {
-      photoMeshes.side = createPhotoPlane(image, PHOTO_ANGLES.side, false);
-      photoMeshes.sideMirror = createPhotoPlane(image, PHOTO_ANGLES.sideMirror, true);
-      photoAvatarGroup.add(photoMeshes.side, photoMeshes.sideMirror);
-    }
-  } else {
-    disposePlane(photoMeshes[slotName]); photoMeshes[slotName] = null;
-    if (image) {
-      photoMeshes[slotName] = createPhotoPlane(image, PHOTO_ANGLES[slotName]);
-      photoAvatarGroup.add(photoMeshes[slotName]);
-    }
-  }
+  billboardMesh = new THREE.Mesh(new THREE.PlaneGeometry(widthM, heightM), material);
+  billboardMesh.position.y = heightM / 2;
+  billboardMesh.userData.slots = slots;
+  photoAvatarGroup.add(billboardMesh);
   refreshAvatarMode();
 }
 
+function updateBillboard() {
+  if (!billboardMesh) return;
+
+  // Yaw to camera, measured around Y axis (0 = camera directly in front of avatar).
+  const dx = camera.position.x - billboardMesh.position.x;
+  const dz = camera.position.z - billboardMesh.position.z;
+  const yaw = Math.atan2(dx, dz);
+  billboardMesh.rotation.set(0, yaw, 0);
+
+  // Pick slot by angle with hysteresis-free hard swap at ±45° / ±135°.
+  const slots = billboardMesh.userData.slots;
+  const abs = Math.abs(yaw);
+  let pick, mirror = false;
+  if (abs < Math.PI / 4)           pick = 'front';
+  else if (abs > 3 * Math.PI / 4)  pick = 'back';
+  else { pick = 'side'; mirror = yaw < 0; }
+
+  // Fallback to whichever slot is actually loaded.
+  if (!slots[pick]) pick = slots.front ? 'front' : slots.side ? 'side' : 'back';
+
+  const s = slots[pick];
+  const mat = billboardMesh.material;
+  if (mat.uniforms.map.value !== s.texture) {
+    mat.uniforms.map.value = s.texture;
+    mat.uniforms.keyColor.value = s.keyColor;
+  }
+  billboardMesh.scale.x = mirror ? -1 : 1;
+}
+
+function setPhotoSlot(slotName, image) {
+  photoImages[slotName] = image;
+  rebuildBillboard();
+}
+
 function refreshAvatarMode() {
-  const anyPhoto = !!(photoMeshes.front || photoMeshes.side || photoMeshes.back);
+  const anyPhoto = !!(photoImages.front || photoImages.side || photoImages.back);
   mannequin.visible = !anyPhoto;
   if (anyPhoto) {
     outfitGroup.position.set(0, 0, 0.05);
@@ -258,12 +281,10 @@ function refreshAvatarMode() {
 }
 
 function clearAvatarPhotos() {
-  for (const k of Object.keys(photoMeshes)) {
-    disposePlane(photoMeshes[k]); photoMeshes[k] = null;
-  }
+  photoImages.front = photoImages.side = photoImages.back = null;
   for (const lbl of [lblFront, lblSide, lblBack]) lbl.dataset.state = 'empty';
   filePhotoFront.value = ''; filePhotoSide.value = ''; filePhotoBack.value = '';
-  refreshAvatarMode();
+  rebuildBillboard();
 }
 
 function wirePhotoSlot(input, label, slotName) {
@@ -277,6 +298,7 @@ function wirePhotoSlot(input, label, slotName) {
       label.dataset.state = 'filled';
       hintEl.classList.add('hidden');
       loaderEl.classList.add('hidden');
+      URL.revokeObjectURL(img.src);
     };
     img.onerror = () => {
       loaderEl.classList.add('hidden');
@@ -594,6 +616,7 @@ resize();
 
 function tick() {
   controls.update();
+  updateBillboard();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
