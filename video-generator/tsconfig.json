@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2020"]
+  },
+  "include": ["src/**/*"],
+  "ts-node": {
+    "esm": true,
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "ESNext",
+      "moduleResolution": "Bundler"
+    }
+  }
+}
