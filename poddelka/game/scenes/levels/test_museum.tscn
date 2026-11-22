@@ -1,0 +1,191 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/test_museum.gd" id="1_level"]
+[ext_resource type="PackedScene" path="res://scenes/props/painting.tscn" id="2_painting"]
+[ext_resource type="PackedScene" path="res://scenes/props/easel.tscn" id="3_easel"]
+
+[sub_resource type="Environment" id="Env_museum"]
+background_mode = 1
+background_color = Color(0.04, 0.05, 0.1, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.4, 0.45, 0.65, 1)
+ambient_light_energy = 0.7
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.36, 0.23, 0.15, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Mat_wall"]
+albedo_color = Color(0.86, 0.81, 0.7, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_marble"]
+albedo_color = Color(0.93, 0.93, 0.9, 1)
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="Mat_velvet"]
+albedo_color = Color(0.65, 0.08, 0.12, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_brass"]
+albedo_color = Color(0.8, 0.62, 0.25, 1)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="Mat_guard"]
+albedo_color = Color(0.2, 0.25, 0.45, 1)
+
+[node name="TestMuseum" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_museum")
+
+[node name="Moonlight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 10, 0)
+light_color = Color(0.6, 0.7, 1, 1)
+light_energy = 0.5
+shadow_enabled = true
+
+[node name="Architecture" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+use_collision = true
+size = Vector3(24, 0.4, 16)
+material = SubResource("Mat_floor")
+
+[node name="WallNorth" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -8)
+use_collision = true
+size = Vector3(24, 5, 0.4)
+material = SubResource("Mat_wall")
+
+[node name="WallSouth" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 8)
+use_collision = true
+size = Vector3(24, 5, 0.4)
+material = SubResource("Mat_wall")
+
+[node name="WallWest" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 2.5, 0)
+use_collision = true
+size = Vector3(0.4, 5, 16)
+material = SubResource("Mat_wall")
+
+[node name="WallEast" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 2.5, 0)
+use_collision = true
+size = Vector3(0.4, 5, 16)
+material = SubResource("Mat_wall")
+
+[node name="Pedestal" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -2)
+use_collision = true
+size = Vector3(0.8, 1.1, 0.8)
+material = SubResource("Mat_marble")
+
+[node name="Bust" type="CSGSphere3D" parent="Architecture/Pedestal"]
+transform = Transform3D(1, 0, 0, 0, 1.2, 0, 0, 0, 1, 0, 0.85, 0)
+radius = 0.3
+material = SubResource("Mat_marble")
+
+[node name="Bench" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 1)
+use_collision = true
+size = Vector3(2.5, 0.45, 0.6)
+material = SubResource("Mat_floor")
+
+[node name="RopePostA" type="CSGCylinder3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.5, -6.3)
+use_collision = true
+radius = 0.05
+height = 1.0
+material = SubResource("Mat_brass")
+
+[node name="RopePostB" type="CSGCylinder3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.5, -6.3)
+use_collision = true
+radius = 0.05
+height = 1.0
+material = SubResource("Mat_brass")
+
+[node name="Rope" type="CSGBox3D" parent="Architecture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.9, -6.3)
+size = Vector3(4, 0.05, 0.05)
+material = SubResource("Mat_velvet")
+
+[node name="Paintings" type="Node3D" parent="."]
+
+[node name="Portrait" parent="Paintings" instance=ExtResource("2_painting")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 2.4, -7.74)
+painting_kind = "portrait"
+painting_seed = 7
+title = "Дама с загадочной улыбкой"
+
+[node name="Landscape" parent="Paintings" instance=ExtResource("2_painting")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 2.4, -7.74)
+painting_kind = "landscape"
+painting_seed = 3
+title = "Закат над рекой"
+
+[node name="SpotPortrait" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.643, 0.766, 0, -0.766, 0.643, -4, 4.6, -5.6)
+light_color = Color(1, 0.88, 0.7, 1)
+light_energy = 4.0
+spot_range = 6.0
+spot_angle = 28.0
+
+[node name="SpotLandscape" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.643, 0.766, 0, -0.766, 0.643, 4, 4.6, -5.6)
+light_color = Color(1, 0.88, 0.7, 1)
+light_energy = 4.0
+spot_range = 6.0
+spot_angle = 28.0
+
+[node name="WorkLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 5)
+light_color = Color(1, 0.8, 0.55, 1)
+light_energy = 1.5
+omni_range = 8.0
+
+[node name="Easels" type="Node3D" parent="."]
+
+[node name="EaselPortrait" parent="Easels" instance=ExtResource("3_easel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 4.5)
+target_painting = NodePath("../../Paintings/Portrait")
+
+[node name="EaselLandscape" parent="Easels" instance=ExtResource("3_easel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 4.5)
+target_painting = NodePath("../../Paintings/Landscape")
+
+[node name="GuardPlaceholder" type="CSGCylinder3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.9, -5)
+use_collision = true
+radius = 0.45
+height = 1.8
+material = SubResource("Mat_guard")
+
+[node name="Label3D" type="Label3D" parent="GuardPlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+billboard = 1
+text = "Охранник
+(этап 1 — патруль и подозрение)"
+font_size = 32
+outline_size = 8
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="Spawn1" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.1, 6.5)
+
+[node name="Spawn2" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.1, 6.5)
+
+[node name="Spawn3" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.1, 2.5)
+
+[node name="Spawn4" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.1, 2.5)
+
+[node name="Players" type="Node3D" parent="."]

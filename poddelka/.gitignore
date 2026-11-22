@@ -1,0 +1,23 @@
+# Кэш Godot — пересоздаётся сам, в репозиторий не кладём
+.godot/
+game/.godot/
+
+# Сборки
+export/
+builds/
+*.pck
+*.exe
+*.x86_64
+*.zip
+
+# Резервные копии Blender
+*.blend1
+*.blend2
+
+# Мусор ОС и редакторов
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.tmp

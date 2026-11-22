@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.4
+height = 1.6
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.4
+height = 1.6
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hat"]
+top_radius = 0.3
+bottom_radius = 0.36
+height = 0.3
+
+[sub_resource type="StandardMaterial3D" id="Mat_black"]
+albedo_color = Color(0.08, 0.08, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_mask"]
+size = Vector3(0.62, 0.14, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Mat_white"]
+albedo_color = Color(0.95, 0.95, 0.95, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_eye"]
+radius = 0.05
+height = 0.1
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("CapsuleMesh_body")
+
+[node name="Hat" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+mesh = SubResource("CylinderMesh_hat")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="Mask" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, -0.33)
+mesh = SubResource("BoxMesh_mask")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="EyeL" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.13, 1.3, -0.4)
+mesh = SubResource("SphereMesh_eye")
+surface_material_override/0 = SubResource("Mat_white")
+
+[node name="EyeR" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 1.3, -0.4)
+mesh = SubResource("SphereMesh_eye")
+surface_material_override/0 = SubResource("Mat_white")
+
+[node name="NameTag" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+billboard = 1
+no_depth_test = true
+text = "Вор"
+font_size = 48
+outline_size = 12
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+transform = Transform3D(1, 0, 0, 0, 0.966, 0.259, 0, -0.259, 0.966, 0, 0, 0)
+spring_length = 4.0
+margin = 0.2
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
+fov = 70.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Prompt" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -120.0
+offset_right = 200.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 26
+theme_override_constants/outline_size = 8
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+text = "[E] Действие"
+horizontal_alignment = 1
+
+[node name="Crosshair" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -10.0
+offset_top = -16.0
+offset_right = 10.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "·"
+horizontal_alignment = 1
