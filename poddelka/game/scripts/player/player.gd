@@ -12,7 +12,10 @@ const ACCEL := 12.0
 const INTERACT_DISTANCE := 2.2
 const NET_SEND_RATE := 20.0 # пакетов в секунду
 
+const StripesShader := preload("res://scenes/player/thief_stripes.gdshader")
+
 @onready var body_mesh: MeshInstance3D = $Visual/Body
+@onready var mask_mesh: MeshInstance3D = $Visual/Mask
 @onready var visual: Node3D = $Visual
 @onready var name_tag: Label3D = $NameTag
 @onready var camera_pivot: Node3D = $CameraPivot
@@ -44,12 +47,20 @@ func _ready() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## Все воры в одинаковых полосатых кофтах, игрока выдаёт только цвет маски.
 func _apply_identity() -> void:
 	var id := name.to_int()
+	var color := Net.get_player_color(id)
 	name_tag.text = Net.get_player_name(id)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Net.get_player_color(id)
-	body_mesh.material_override = mat
+	name_tag.modulate = color
+	if body_mesh.material_override == null:
+		var stripes := ShaderMaterial.new()
+		stripes.shader = StripesShader
+		body_mesh.material_override = stripes
+	var mask_mat := StandardMaterial3D.new()
+	mask_mat.albedo_color = color
+	mask_mat.roughness = 0.6
+	mask_mesh.material_override = mask_mat
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -19,7 +19,7 @@ height = 0.3
 albedo_color = Color(0.08, 0.08, 0.1, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_mask"]
-size = Vector3(0.62, 0.14, 0.12)
+size = Vector3(0.66, 0.2, 0.14)
 
 [sub_resource type="StandardMaterial3D" id="Mat_white"]
 albedo_color = Color(0.95, 0.95, 0.95, 1)
